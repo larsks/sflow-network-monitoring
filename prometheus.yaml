@@ -1,0 +1,52 @@
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: 'sflow-rt-analyzer'
+    metrics_path: /prometheus/analyzer/txt
+    static_configs:
+      - targets: ['sflow:8008']
+
+  - job_name: 'sflow-rt-metrics'
+    metrics_path: /prometheus/metrics/ALL/ALL/txt
+    static_configs:
+      - targets: ['sflow:8008']
+
+  - job_name: 'sflow-rt-flow-src-dst-bps'
+    metrics_path: /app/prometheus/scripts/export.js/flows/ALL/txt
+    static_configs:
+      - targets: ['sflow:8008']
+    params:
+      metric: ['ip_src_dst_bps']
+      key: ['ipsource','ipdestination']
+      label: ['src','dst']
+      value: ['bytes']
+      scale: ['8']
+      minValue: ['1000']
+      maxFlows: ['100']
+
+  - job_name: 'snmp'
+    static_configs:
+      - targets:
+        - 192.168.1.1
+    metrics_path: /snmp
+    params:
+      auth: [public_v2]
+      module: [if_mib]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: snmp:9116
+
+  - job_name: 'snmp_exporter'
+    static_configs:
+      - targets: ['snmp:9116']
+
